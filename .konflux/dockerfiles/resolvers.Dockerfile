@@ -31,7 +31,8 @@ ENV RESOLVERS=/usr/local/bin/resolvers \
 COPY --from=builder /tmp/resolvers /ko-app/resolvers
 COPY head ${KO_DATA_PATH}/HEAD
 
-COPY --from=dependency-builder /dependencies/tini/tini /ko-app/tini
+COPY --from=dependency-builder /dependencies/tini/tini /sbin/tini
+RUN chmod 0755 /sbin/tini && chown root:root /sbin/tini
 
 LABEL \
       com.redhat.component="openshift-pipelines-resolvers-rhel9-container" \
@@ -50,5 +51,5 @@ RUN groupadd -r -g 65532 nonroot && \
     useradd --no-log-init -r -u 65532 -g nonroot nonroot
 USER 65532
 
-ENTRYPOINT ["/ko-app/tini", "--", "/ko-app/resolvers"]
+ENTRYPOINT ["/sbin/tini", "--", "/ko-app/resolvers"]
 
