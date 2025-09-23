@@ -1,5 +1,8 @@
 ARG GO_BUILDER=brew.registry.redhat.io/rh-osbs/openshift-golang-builder:v1.24
 ARG RUNTIME=scratch
+# Add FIPS compliance layer
+ARG FIPS_BUILDER=registry.access.redhat.com/ubi9/ubi-minimal:latest@sha256:92b1d5747a93608b6adb64dfd54515c3c5a360802db4706765ff3d8470df6290
+FROM $FIPS_BUILDER AS fips_builder
 
 FROM $GO_BUILDER AS builder
 
@@ -22,6 +25,11 @@ ENV NOP=/usr/local/bin/nop \
 
 COPY --from=builder /tmp/nop /ko-app/nop
 COPY head ${KO_DATA_PATH}/HEAD
+
+# Copy FIPS-compliant libraries
+COPY --from=fips_builder /usr/lib64/libcrypto.so.3 /usr/lib64/
+COPY --from=fips_builder /usr/lib64/libcrypto.so.3.2.2 /usr/lib64/
+COPY --from=fips_builder /usr/lib64/ossl-modules/fips.so /usr/lib64/ossl-modules/
 
 LABEL \
       com.redhat.component="openshift-pipelines-nop-rhel9-container" \
