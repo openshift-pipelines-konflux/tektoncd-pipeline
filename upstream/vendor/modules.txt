@@ -740,8 +740,8 @@ github.com/ryanuber/go-glob
 # github.com/secure-systems-lab/go-securesystemslib v0.9.0
 ## explicit; go 1.20
 github.com/secure-systems-lab/go-securesystemslib/encrypted
-# github.com/shurcooL/githubv4 v0.0.0-20190718010115-4ba037080260
-## explicit
+# github.com/shurcooL/githubv4 v0.0.0-20240727222349-48295856cce7
+## explicit; go 1.19
 github.com/shurcooL/githubv4
 # github.com/shurcooL/graphql v0.0.0-20181231061246-d48a9a75455f
 ## explicit
