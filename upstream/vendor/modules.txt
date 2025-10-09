@@ -743,8 +743,8 @@ github.com/secure-systems-lab/go-securesystemslib/encrypted
 # github.com/shurcooL/githubv4 v0.0.0-20190718010115-4ba037080260
 ## explicit
 github.com/shurcooL/githubv4
-# github.com/shurcooL/graphql v0.0.0-20181231061246-d48a9a75455f
-## explicit
+# github.com/shurcooL/graphql v0.0.0-20230722043721-ed46e5a46466
+## explicit; go 1.19
 github.com/shurcooL/graphql
 github.com/shurcooL/graphql/ident
 github.com/shurcooL/graphql/internal/jsonutil
@@ -970,7 +970,6 @@ golang.org/x/mod/module
 golang.org/x/mod/semver
 # golang.org/x/net v0.39.0
 ## explicit; go 1.23.0
-golang.org/x/net/context/ctxhttp
 golang.org/x/net/html
 golang.org/x/net/html/atom
 golang.org/x/net/http/httpguts
