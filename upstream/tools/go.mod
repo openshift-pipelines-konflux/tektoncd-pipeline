@@ -1,8 +1,8 @@
 module github.com/tektoncd/pipeline/tools
 
-go 1.21
+go 1.24.0
 
-toolchain go1.23.8
+toolchain go1.24.6
 
 require github.com/golangci/golangci-lint v1.57.2
 
@@ -171,7 +171,7 @@ require (
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/exp v0.0.0-20240103183307-be819d1f06fc // indirect
-	golang.org/x/exp/typeparams v0.0.0-20240314144324-c7f7c6466f7f // indirect
+	golang.org/x/exp/typeparams v0.0.0-20251009144603-d2f985daa21b // indirect
 	golang.org/x/mod v0.16.0 // indirect
 	golang.org/x/sync v0.6.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
