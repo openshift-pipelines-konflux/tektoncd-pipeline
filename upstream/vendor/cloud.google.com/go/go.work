@@ -1,4 +1,4 @@
-go 1.21
+go 1.23.0
 
 use (
 	.
@@ -12,6 +12,7 @@ use (
 	./apigateway
 	./apigeeconnect
 	./apigeeregistry
+	./apihub
 	./apikeys
 	./appengine
 	./apphub
@@ -59,6 +60,7 @@ use (
 	./datastore
 	./datastream
 	./deploy
+	./developerconnect
 	./dialogflow
 	./discoveryengine
 	./dlp
@@ -70,6 +72,7 @@ use (
 	./essentialcontacts
 	./eventarc
 	./filestore
+	./financialservices
 	./firestore
 	./functions
 	./gkebackup
@@ -100,27 +103,34 @@ use (
 	./logging
 	./longrunning
 	./managedidentities
+	./managedkafka
 	./maps
 	./mediatranslation
 	./memcache
+	./memorystore
 	./metastore
 	./migrationcenter
+	./modelarmor
 	./monitoring
 	./netapp
 	./networkconnectivity
 	./networkmanagement
 	./networksecurity
+	./networkservices
 	./notebooks
 	./optimization
+	./oracledatabase
 	./orchestration
 	./orgpolicy
 	./osconfig
 	./oslogin
 	./parallelstore
+	./parametermanager
 	./phishingprotection
 	./policysimulator
 	./policytroubleshooter
 	./privatecatalog
+	./privilegedaccessmanager
 	./profiler
 	./pubsub
 	./pubsublite
@@ -130,7 +140,6 @@ use (
 	./recommender
 	./redis
 	./resourcemanager
-	./resourcesettings
 	./retail
 	./run
 	./scheduler
