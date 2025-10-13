@@ -2,7 +2,7 @@ module github.com/tektoncd/pipeline/tools
 
 go 1.21
 
-toolchain go1.23.8
+toolchain go1.25.2
 
 require github.com/golangci/golangci-lint v1.57.2
 
