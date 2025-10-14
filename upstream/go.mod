@@ -35,7 +35,7 @@ require (
 	k8s.io/code-generator v0.29.7
 	k8s.io/klog v1.0.0
 	k8s.io/kube-openapi v0.0.0-20231010175941-2dd684a91f00
-	knative.dev/pkg v0.0.0-20240416145024-0f34a8815650
+	knative.dev/pkg 094a61a9ff82
 	sigs.k8s.io/yaml v1.4.0
 )
 
