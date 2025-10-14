@@ -814,8 +814,8 @@ github.com/stoewer/go-strcase
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/assert/yaml
 github.com/stretchr/testify/require
-# github.com/tektoncd/plumbing v0.0.0-20220817140952-3da8ce01aeeb
-## explicit; go 1.13
+# github.com/tektoncd/plumbing v0.0.0-20251009131818-0eab0cb98f17
+## explicit; go 1.24.0
 github.com/tektoncd/plumbing
 github.com/tektoncd/plumbing/cmd/combine
 github.com/tektoncd/plumbing/scripts
