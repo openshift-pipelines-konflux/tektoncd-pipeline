@@ -32,7 +32,7 @@ require (
 	k8s.io/klog v1.0.0
 	k8s.io/kube-openapi v0.0.0-20241212222426-2c72e554b1e7
 	knative.dev/hack v0.0.0-20250331013814-c577ed9f7775 // indirect
-	knative.dev/pkg v0.0.0-20250415155312-ed3e2158b883
+	knative.dev/pkg 094a61a9ff82
 	sigs.k8s.io/yaml v1.6.0
 )
 
