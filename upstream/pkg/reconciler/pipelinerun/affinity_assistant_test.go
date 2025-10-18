@@ -342,8 +342,7 @@ func TestCreateOrUpdateAffinityAssistantsAndPVCsPerPipelineRun(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			featureFlags := map[string]string{
-				"disable-affinity-assistant": "true",
-				"coschedule":                 "pipelineruns",
+				"coschedule": "pipelineruns",
 			}
 
 			for k, v := range tc.featureFlags {
@@ -351,7 +350,7 @@ func TestCreateOrUpdateAffinityAssistantsAndPVCsPerPipelineRun(t *testing.T) {
 			}
 
 			kubeClientSet := fakek8s.NewSimpleClientset()
-			ctx := cfgtesting.SetFeatureFlags(context.Background(), t, featureFlags)
+			ctx := cfgtesting.SetFeatureFlags(t.Context(), t, featureFlags)
 			c := Reconciler{
 				KubeClientSet: kubeClientSet,
 				pvcHandler:    volumeclaim.NewPVCHandler(kubeClientSet, zap.NewExample().Sugar()),
@@ -511,7 +510,7 @@ func TestCreateOrUpdateAffinityAssistantsAndPVCsPerWorkspaceOrDisabled(t *testin
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx := context.Background()
+			ctx := t.Context()
 			kubeClientSet := fakek8s.NewSimpleClientset()
 			c := Reconciler{
 				KubeClientSet: kubeClientSet,
@@ -578,54 +577,51 @@ func TestCreateOrUpdateAffinityAssistantsAndPVCs_Failure(t *testing.T) {
 		name:        "pvc creation failed - per workspace",
 		failureType: "pvc",
 		aaBehavior:  aa.AffinityAssistantPerWorkspace,
-		expectedErr: fmt.Errorf("%w: failed to create PVC pvc-b9eea16dce: error creating persistentvolumeclaims", ErrPvcCreationFailed),
+		expectedErr: fmt.Errorf("%w for pvc-b9eea16dce: error creating persistentvolumeclaims", ErrPvcCreationFailed),
 	}, {
 		name:        "pvc creation failed - disabled",
 		failureType: "pvc",
 		aaBehavior:  aa.AffinityAssistantDisabled,
-		expectedErr: fmt.Errorf("%w: failed to create PVC pvc-b9eea16dce: error creating persistentvolumeclaims", ErrPvcCreationFailed),
+		expectedErr: fmt.Errorf("%w for pvc-b9eea16dce: error creating persistentvolumeclaims", ErrPvcCreationFailed),
 	}}
 
 	for _, tc := range testCases {
-		ctx := context.Background()
-		kubeClientSet := fakek8s.NewSimpleClientset()
-		c := Reconciler{
-			KubeClientSet: kubeClientSet,
-			pvcHandler:    volumeclaim.NewPVCHandler(kubeClientSet, zap.NewExample().Sugar()),
-		}
-
-		switch tc.failureType {
-		case "pvc":
-			c.KubeClientSet.CoreV1().(*fake.FakeCoreV1).PrependReactor("create", "persistentvolumeclaims",
-				func(action testing2.Action) (handled bool, ret runtime.Object, err error) {
-					return true, &corev1.PersistentVolumeClaim{}, errors.New("error creating persistentvolumeclaims")
-				})
-		case "statefulset":
-			c.KubeClientSet.CoreV1().(*fake.FakeCoreV1).PrependReactor("create", "statefulsets",
-				func(action testing2.Action) (handled bool, ret runtime.Object, err error) {
-					return true, &appsv1.StatefulSet{}, errors.New("error creating statefulsets")
-				})
-		}
-
-		err := c.createOrUpdateAffinityAssistantsAndPVCs(ctx, testPRWithVolumeClaimTemplate, tc.aaBehavior)
-
-		if err == nil {
-			t.Errorf("expect error from createOrUpdateAffinityAssistantsAndPVCs but got nil")
-		}
-
-		switch tc.failureType {
-		case "pvc":
-			if !errors.Is(err, ErrPvcCreationFailed) {
-				t.Errorf("expected err type mismatching, expecting %v but got: %v", ErrPvcCreationFailed, err)
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := t.Context()
+			kubeClientSet := fakek8s.NewSimpleClientset()
+			c := Reconciler{
+				KubeClientSet: kubeClientSet,
+				pvcHandler:    volumeclaim.NewPVCHandler(kubeClientSet, zap.NewExample().Sugar()),
 			}
-		case "statefulset":
-			if !errors.Is(err, ErrAffinityAssistantCreationFailed) {
-				t.Errorf("expected err type mismatching, expecting %v but got: %v", ErrAffinityAssistantCreationFailed, err)
+
+			switch tc.failureType {
+			case "pvc":
+				c.KubeClientSet.CoreV1().(*fake.FakeCoreV1).PrependReactor("create", "persistentvolumeclaims",
+					func(action testing2.Action) (handled bool, ret runtime.Object, err error) {
+						return true, &corev1.PersistentVolumeClaim{}, errors.New("error creating persistentvolumeclaims")
+					})
+			case "statefulset":
+				c.KubeClientSet.CoreV1().(*fake.FakeCoreV1).PrependReactor("create", "statefulsets",
+					func(action testing2.Action) (handled bool, ret runtime.Object, err error) {
+						return true, &appsv1.StatefulSet{}, errors.New("error creating statefulsets")
+					})
 			}
-		}
-		if d := cmp.Diff(tc.expectedErr.Error(), err.Error()); d != "" {
-			t.Errorf("expected err mismatching: %v", diff.PrintWantGot(d))
-		}
+
+			err := c.createOrUpdateAffinityAssistantsAndPVCs(ctx, testPRWithVolumeClaimTemplate, tc.aaBehavior)
+
+			if err == nil {
+				t.Errorf("expect error from createOrUpdateAffinityAssistantsAndPVCs but got nil")
+			}
+
+			if tc.failureType == "statefulset" {
+				if !errors.Is(err, ErrAffinityAssistantCreationFailed) {
+					t.Errorf("expected err type mismatching, expecting %v but got: %v", ErrAffinityAssistantCreationFailed, err)
+				}
+			}
+			if d := cmp.Diff(tc.expectedErr.Error(), err.Error()); d != "" {
+				t.Errorf("expected err mismatching: %v", diff.PrintWantGot(d))
+			}
+		})
 	}
 }
 
@@ -1020,8 +1016,7 @@ func TestCleanupAffinityAssistants_Success(t *testing.T) {
 		name:       "Affinity Assistant Cleanup - per workspace",
 		aaBehavior: aa.AffinityAssistantPerWorkspace,
 		cfgMap: map[string]string{
-			"disable-affinity-assistant": "false",
-			"coschedule":                 "workspaces",
+			"coschedule": "workspaces",
 		},
 		affinityAssistantNames: []string{"affinity-assistant-9d8b15fa2e", "affinity-assistant-39883fc3b2"},
 		pvcNames:               []string{"pvc-a12c589442", "pvc-5ce7cd98c5"},
@@ -1029,8 +1024,7 @@ func TestCleanupAffinityAssistants_Success(t *testing.T) {
 		name:       "Affinity Assistant Cleanup - per pipelinerun",
 		aaBehavior: aa.AffinityAssistantPerPipelineRun,
 		cfgMap: map[string]string{
-			"disable-affinity-assistant": "true",
-			"coschedule":                 "pipelineruns",
+			"coschedule": "pipelineruns",
 		},
 		affinityAssistantNames: []string{"affinity-assistant-62843d388a"},
 		pvcNames:               []string{"pvc-a12c589442-affinity-assistant-62843d388a-0", "pvc-5ce7cd98c5-affinity-assistant-62843d388a-0"},
@@ -1072,7 +1066,7 @@ func TestCleanupAffinityAssistants_Success(t *testing.T) {
 		}
 
 		_, c, _ := seedTestData(data)
-		ctx := cfgtesting.SetFeatureFlags(context.Background(), t, tc.cfgMap)
+		ctx := cfgtesting.SetFeatureFlags(t.Context(), t, tc.cfgMap)
 
 		// mocks `kubernetes.io/pvc-protection` finalizer behavior by adding DeletionTimestamp when deleting pvcs with the finalizer
 		// see details in: https://kubernetes.io/docs/concepts/overview/working-with-objects/finalizers/#how-finalizers-work
@@ -1133,7 +1127,7 @@ func TestCleanupAffinityAssistantsAndPVCs_Failure(t *testing.T) {
 		},
 	}
 
-	ctx := context.Background()
+	ctx := t.Context()
 	c := Reconciler{
 		KubeClientSet: fakek8s.NewSimpleClientset(),
 	}
@@ -1157,14 +1151,12 @@ func TestCleanupAffinityAssistantsAndPVCs_Failure(t *testing.T) {
 	}
 }
 
-// TestThatCleanupIsAvoidedIfAssistantIsDisabled tests that
-// cleanup of Affinity Assistants is omitted when the
-// Affinity Assistant is disabled
-func TestThatCleanupIsAvoidedIfAssistantIsDisabled(t *testing.T) {
+// TestThatCleanupIsAvoidedtests that cleanup of Affinity Assistants is omitted
+func TestThatCleanupIsAvoided(t *testing.T) {
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{Name: config.GetFeatureFlagsConfigName(), Namespace: system.Namespace()},
 		Data: map[string]string{
-			featureFlagDisableAffinityAssistantKey: "true",
+			"coschedule": "disabled",
 		},
 	}
 
@@ -1179,7 +1171,7 @@ func TestThatCleanupIsAvoidedIfAssistantIsDisabled(t *testing.T) {
 	store := config.NewStore(logtesting.TestLogger(t))
 	store.OnConfigChanged(configMap)
 
-	_ = c.cleanupAffinityAssistantsAndPVCs(store.ToContext(context.Background()), testPRWithPVC)
+	_ = c.cleanupAffinityAssistantsAndPVCs(store.ToContext(t.Context()), testPRWithPVC)
 
 	if len(fakeClientSet.Actions()) != 0 {
 		t.Errorf("Expected 0 k8s client requests, did %d request", len(fakeClientSet.Actions()))
