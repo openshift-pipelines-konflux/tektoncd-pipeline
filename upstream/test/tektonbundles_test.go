@@ -54,7 +54,7 @@ var resolverFeatureFlags = requireAllGates(map[string]string{
 // TestTektonBundlesResolver is an integration test which tests a simple, working Tekton bundle using OCI
 // images using the remote resolution bundles resolver.
 func TestTektonBundlesResolver(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	c, namespace := setup(ctx, t, withRegistry, resolverFeatureFlags)
 
 	t.Parallel()
@@ -260,7 +260,7 @@ func publishImg(ctx context.Context, t *testing.T, c *clients, namespace string,
 			}},
 			Containers: []corev1.Container{{
 				Name:       "skopeo",
-				Image:      "gcr.io/tekton-releases/dogfooding/skopeo:latest",
+				Image:      "ghcr.io/tektoncd/catalog/upstream/tasks/skopeo-copy:latest",
 				WorkingDir: "/var",
 				Command:    []string{"/bin/sh", "-c"},
 				Args:       []string{"skopeo copy --dest-tls-verify=false oci:image docker://" + ref.String()},

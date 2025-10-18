@@ -43,12 +43,12 @@ import (
 func TestPipelineRunTimeout(t *testing.T) {
 	t.Parallel()
 	// cancel the context after we have waited a suitable buffer beyond the given deadline.
-	ctx, cancel := context.WithTimeout(context.Background(), timeout+2*time.Minute)
+	ctx, cancel := context.WithTimeout(t.Context(), timeout+2*time.Minute)
 	defer cancel()
 	c, namespace := setup(ctx, t)
 
-	knativetest.CleanupOnInterrupt(func() { tearDown(context.Background(), t, c, namespace) }, t.Logf)
-	defer tearDown(context.Background(), t, c, namespace)
+	knativetest.CleanupOnInterrupt(func() { tearDown(t.Context(), t, c, namespace) }, t.Logf)
+	defer tearDown(t.Context(), t, c, namespace)
 
 	t.Logf("Creating Task in namespace %s", namespace)
 	task := parse.MustParseV1Task(t, fmt.Sprintf(`
@@ -161,12 +161,12 @@ spec:
 // TestStepTimeout is an integration test that will verify a Step can be timed out.
 func TestStepTimeout(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Minute)
 	defer cancel()
 	c, namespace := setup(ctx, t)
 
-	knativetest.CleanupOnInterrupt(func() { tearDown(context.Background(), t, c, namespace) }, t.Logf)
-	defer tearDown(context.Background(), t, c, namespace)
+	knativetest.CleanupOnInterrupt(func() { tearDown(t.Context(), t, c, namespace) }, t.Logf)
+	defer tearDown(t.Context(), t, c, namespace)
 
 	t.Logf("Creating Task with Step step-no-timeout, Step step-timeout, and Step step-canceled in namespace %s", namespace)
 
@@ -223,12 +223,12 @@ spec:
 // TestStepTimeoutWithWS is an integration test that will verify a Step can be timed out.
 func TestStepTimeoutWithWS(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Minute)
 	defer cancel()
 	c, namespace := setup(ctx, t)
 
-	knativetest.CleanupOnInterrupt(func() { tearDown(context.Background(), t, c, namespace) }, t.Logf)
-	defer tearDown(context.Background(), t, c, namespace)
+	knativetest.CleanupOnInterrupt(func() { tearDown(t.Context(), t, c, namespace) }, t.Logf)
+	defer tearDown(t.Context(), t, c, namespace)
 
 	taskRun := parse.MustParseV1TaskRun(t, `
 metadata:
@@ -263,12 +263,12 @@ spec:
 func TestTaskRunTimeout(t *testing.T) {
 	t.Parallel()
 	timeout := 1 * time.Second
-	ctx, cancel := context.WithTimeout(context.Background(), timeout+2*time.Minute)
+	ctx, cancel := context.WithTimeout(t.Context(), timeout+2*time.Minute)
 	defer cancel()
 	c, namespace := setup(ctx, t)
 
-	knativetest.CleanupOnInterrupt(func() { tearDown(context.Background(), t, c, namespace) }, t.Logf)
-	defer tearDown(context.Background(), t, c, namespace)
+	knativetest.CleanupOnInterrupt(func() { tearDown(t.Context(), t, c, namespace) }, t.Logf)
+	defer tearDown(t.Context(), t, c, namespace)
 
 	t.Logf("Creating Task and TaskRun in namespace %s", namespace)
 	task := parse.MustParseV1Task(t, fmt.Sprintf(`
@@ -319,12 +319,12 @@ spec:
 
 func TestPipelineTaskTimeout(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), timeout+2*time.Minute)
+	ctx, cancel := context.WithTimeout(t.Context(), timeout+2*time.Minute)
 	defer cancel()
 	c, namespace := setup(ctx, t)
 
-	knativetest.CleanupOnInterrupt(func() { tearDown(context.Background(), t, c, namespace) }, t.Logf)
-	defer tearDown(context.Background(), t, c, namespace)
+	knativetest.CleanupOnInterrupt(func() { tearDown(t.Context(), t, c, namespace) }, t.Logf)
+	defer tearDown(t.Context(), t, c, namespace)
 
 	t.Logf("Creating Tasks in namespace %s", namespace)
 	task1 := parse.MustParseV1Task(t, fmt.Sprintf(`
@@ -440,12 +440,12 @@ spec:
 func TestPipelineRunTasksTimeout(t *testing.T) {
 	t.Parallel()
 	// cancel the context after we have waited a suitable buffer beyond the given deadline.
-	ctx, cancel := context.WithTimeout(context.Background(), timeout+2*time.Minute)
+	ctx, cancel := context.WithTimeout(t.Context(), timeout+2*time.Minute)
 	defer cancel()
 	c, namespace := setup(ctx, t)
 
-	knativetest.CleanupOnInterrupt(func() { tearDown(context.Background(), t, c, namespace) }, t.Logf)
-	defer tearDown(context.Background(), t, c, namespace)
+	knativetest.CleanupOnInterrupt(func() { tearDown(t.Context(), t, c, namespace) }, t.Logf)
+	defer tearDown(t.Context(), t, c, namespace)
 
 	t.Logf("Creating Task in namespace %s", namespace)
 	task := parse.MustParseV1Task(t, fmt.Sprintf(`
@@ -511,7 +511,7 @@ spec:
 	}
 
 	t.Logf("Waiting for PipelineRun %s in namespace %s to be failed", pipelineRun.Name, namespace)
-	if err := WaitForPipelineRunState(ctx, c, pipelineRun.Name, timeout, FailedWithReason(v1.PipelineRunReasonFailed.String(), pipelineRun.Name), "PipelineRunFailed", v1Version); err != nil {
+	if err := WaitForPipelineRunState(ctx, c, pipelineRun.Name, timeout, FailedWithReason(v1.PipelineRunReasonTimedOut.String(), pipelineRun.Name), "PipelineRunFailed", v1Version); err != nil {
 		t.Errorf("Error waiting for PipelineRun %s to finish: %s", pipelineRun.Name, err)
 	}
 
@@ -565,12 +565,12 @@ spec:
 func TestPipelineRunTimeoutWithCompletedTaskRuns(t *testing.T) {
 	t.Parallel()
 	// cancel the context after we have waited a suitable buffer beyond the given deadline.
-	ctx, cancel := context.WithTimeout(context.Background(), timeout+2*time.Minute)
+	ctx, cancel := context.WithTimeout(t.Context(), timeout+2*time.Minute)
 	defer cancel()
 	c, namespace := setup(ctx, t)
 
-	knativetest.CleanupOnInterrupt(func() { tearDown(context.Background(), t, c, namespace) }, t.Logf)
-	defer tearDown(context.Background(), t, c, namespace)
+	knativetest.CleanupOnInterrupt(func() { tearDown(t.Context(), t, c, namespace) }, t.Logf)
+	defer tearDown(t.Context(), t, c, namespace)
 
 	t.Logf("Creating Task in namespace %s", namespace)
 	task := parse.MustParseV1Task(t, fmt.Sprintf(`

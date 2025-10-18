@@ -1,54 +1,54 @@
 ---
-apiVersion: tekton.dev/v1beta1
+apiVersion: tekton.dev/v1
 kind: Pipeline
 metadata:
   name: pipeline-release
 spec:
   params:
-  - name: package
-    description: package to release
-    default: github.com/tektoncd/pipeline
-  - name: gitRevision
-    description: the git revision to release
-  - name: imageRegistry
-    description: The target image registry
-    default: gcr.io
-  - name: imageRegistryPath
-    description: The path (project) in the image registry
-    default: tekton-releases
-  - name: imageRegistryRegions
-    description: The target image registry regions
-    default: "us eu asia"
-  - name: imageRegistryUser
-    description: The user for the image registry credentials
-    default: _json_key
-  - name: versionTag
-    description: The X.Y.Z version that the artifacts should be tagged with
-  - name: releaseBucket
-    description: bucket where the release is stored. The bucket must be project specific.
-    default: gs://tekton-releases-nightly/pipeline
-  - name: releaseAsLatest
-    description: Whether to tag and publish this release as Pipelines' latest
-    default: "true"
-  - name: buildPlatforms
-    description: Platforms to build images for (e.g. linux/amd64,linux/arm64)
-    default: linux/amd64,linux/arm,linux/arm64,linux/s390x,linux/ppc64le
-  - name: publishPlatforms
-    description: |
-      Platforms to publish images for (e.g. linux/amd64,linux/arm64,windows/amd64). This
-      can differ from buildPlatforms due to the fact that a windows-compatible base image
-      is constructed for the publishing phase.
-    default: linux/amd64,linux/arm,linux/arm64,linux/s390x,linux/ppc64le,windows/amd64
-  - name: koExtraArgs
-    description: Extra args to be passed to ko
-    default: "--preserve-import-paths"
-  - name: serviceAccountPath
-    description: The path to the service account file within the release-secret workspace
-  - name: serviceAccountImagesPath
-    description: The path to the service account file or credentials within the release-images-secret workspace
-  - name: runTests
-    description: If set to something other than "true", skip the build and test tasks
-    default: "true"
+    - name: package
+      description: package to release
+      default: github.com/tektoncd/pipeline
+    - name: gitRevision
+      description: the git revision to release
+    - name: imageRegistry
+      description: The target image registry
+      default: ghcr.io
+    - name: imageRegistryPath
+      description: The path (project) in the image registry
+      default: "tekton-releases-nightly"  # Will be overridden based on releaseMode
+    - name: imageRegistryRegions
+      description: The target image registry regions
+      default: ""  # Empty for GHCR, "us eu asia" for GCR
+    - name: imageRegistryUser
+      description: The user for the image registry credentials
+      default: _json_key
+    - name: versionTag
+      description: Version tag (vX.Y.Z for stable, vYYYYMMDD-abc1234 for nightly)
+    - name: releaseBucket
+      description: bucket where the release is stored. The bucket must be project specific.
+      default: "gs://tekton-releases-nightly/pipeline"  # Will be overridden based on releaseMode
+    - name: releaseAsLatest
+      description: Whether to tag and publish this release as latest
+      default: "false"  # Will be overridden based on releaseMode
+    - name: buildPlatforms
+      description: Platforms to build images for (e.g. linux/amd64,linux/arm64)
+      default: linux/amd64,linux/arm64,linux/s390x,linux/ppc64le
+    - name: publishPlatforms
+      description: |
+        Platforms to publish images for (e.g. linux/amd64,linux/arm64,windows/amd64). This
+        can differ from buildPlatforms due to the fact that a windows-compatible base image
+        is constructed for the publishing phase.)
+      default: linux/amd64,linux/arm64,linux/s390x,linux/ppc64le,windows/amd64
+    - name: koExtraArgs
+      description: Extra args to be passed to ko
+      default: "--preserve-import-paths"
+    - name: serviceAccountPath
+      description: The path to the service account file within the release-secret workspace
+    - name: serviceAccountImagesPath
+      description: The path to the service account file or credentials within the release-images-secret workspace
+    - name: runTests
+      description: If set to something other than "true", skip the build and test tasks
+      default: "true"
   workspaces:
     - name: workarea
       description: The workspace where the repo will be cloned.
@@ -69,30 +69,31 @@ spec:
   tasks:
     - name: git-clone
       taskRef:
-        resolver: hub
+        resolver: bundles
         params:
+          - name: bundle
+            value: ghcr.io/tektoncd/catalog/upstream/tasks/git-clone:0.7
           - name: name
             value: git-clone
-          - name: version
-            value: "0.7"
+          - name: kind
+            value: task
       workspaces:
         - name: output
           workspace: workarea
-          subpath: git
+          subPath: git
       params:
         - name: url
           value: https://$(params.package)
         - name: revision
           value: $(params.gitRevision)
+
     - name: precheck
       runAfter: [git-clone]
       taskRef:
         resolver: git
         params:
-          - name: repo
-            value: plumbing
-          - name: org
-            value: tektoncd
+          - name: url
+            value: https://github.com/tektoncd/plumbing
           - name: revision
             value: aeed19e5a36f335ebfdc4b96fa78d1ce5bb4f7b8
           - name: pathInRepo
@@ -107,7 +108,8 @@ spec:
       workspaces:
         - name: source-to-release
           workspace: workarea
-          subpath: git
+          subPath: git
+
     - name: unit-tests
       runAfter: [precheck]
       when:
@@ -116,7 +118,7 @@ spec:
         resolver: bundles
         params:
           - name: bundle
-            value: gcr.io/tekton-releases/catalog/upstream/golang-test:0.2
+            value: ghcr.io/tektoncd/catalog/upstream/tasks/golang-test:0.2
           - name: name
             value: golang-test
           - name: kind
@@ -124,12 +126,15 @@ spec:
       params:
         - name: package
           value: $(params.package)
+        - name: packages
+          value: "./..."
         - name: flags
           value: -v -mod=vendor
       workspaces:
         - name: source
           workspace: workarea
-          subpath: git
+          subPath: git
+
     - name: build
       runAfter: [precheck]
       when:
@@ -138,7 +143,7 @@ spec:
         resolver: bundles
         params:
           - name: bundle
-            value: gcr.io/tekton-releases/catalog/upstream/golang-build:0.3
+            value: ghcr.io/tektoncd/catalog/upstream/tasks/golang-build:0.3
           - name: name
             value: golang-build
           - name: kind
@@ -151,7 +156,8 @@ spec:
       workspaces:
         - name: source
           workspace: workarea
-          subpath: git
+          subPath: git
+
     - name: publish-images
       runAfter: [unit-tests, build]
       taskRef:
@@ -189,20 +195,20 @@ spec:
       workspaces:
         - name: source
           workspace: workarea
-          subpath: git
+          subPath: git
         - name: output
           workspace: workarea
-          subpath: bucket
+          subPath: bucket
         - name: release-secret
           workspace: release-images-secret
-      timeout: 2h
+      timeout: 3h
     - name: publish-to-bucket
       runAfter: [publish-images]
       taskRef:
         resolver: bundles
         params:
           - name: bundle
-            value: gcr.io/tekton-releases/catalog/upstream/gcs-upload:0.3
+            value: ghcr.io/tektoncd/catalog/upstream/tasks/gcs-upload:0.3
           - name: name
             value: gcs-upload
           - name: kind
@@ -212,7 +218,7 @@ spec:
           workspace: release-secret
         - name: source
           workspace: workarea
-          subpath: bucket
+          subPath: bucket
       params:
         - name: location
           value: $(params.releaseBucket)/previous/$(params.versionTag)
@@ -230,7 +236,7 @@ spec:
         resolver: bundles
         params:
           - name: bundle
-            value: gcr.io/tekton-releases/catalog/upstream/gcs-upload:0.3
+            value: ghcr.io/tektoncd/catalog/upstream/tasks/gcs-upload:0.3
           - name: name
             value: gcs-upload
           - name: kind
@@ -240,7 +246,7 @@ spec:
           workspace: release-secret
         - name: source
           workspace: workarea
-          subpath: bucket
+          subPath: bucket
       params:
         - name: location
           value: $(params.releaseBucket)/latest
