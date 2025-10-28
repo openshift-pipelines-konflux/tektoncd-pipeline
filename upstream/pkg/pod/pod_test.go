@@ -17,7 +17,6 @@ limitations under the License.
 package pod
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -31,6 +30,7 @@ import (
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/pod"
 	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
+	tknreconciler "github.com/tektoncd/pipeline/pkg/reconciler"
 	"github.com/tektoncd/pipeline/pkg/spire"
 	"github.com/tektoncd/pipeline/test/diff"
 	"github.com/tektoncd/pipeline/test/names"
@@ -2006,6 +2006,7 @@ _EOF_
 						{Name: "tekton-internal-bin", ReadOnly: true, MountPath: "/tekton/bin"},
 						{Name: "tekton-internal-run-0", ReadOnly: true, MountPath: "/tekton/run/0"},
 					}, implicitVolumeMounts...),
+					Env: []corev1.EnvVar{{Name: "SIDECAR_LOG_POLLING_INTERVAL", Value: "100ms"}},
 				}},
 				Volumes: append(implicitVolumes, binVolume, runVolume(0), downwardVolume, corev1.Volume{
 					Name:         "tekton-creds-init-home-0",
@@ -2087,6 +2088,7 @@ _EOF_
 						{Name: "tekton-internal-bin", ReadOnly: true, MountPath: "/tekton/bin"},
 						{Name: "tekton-internal-run-0", ReadOnly: true, MountPath: "/tekton/run/0"},
 					}, implicitVolumeMounts...),
+					Env: []corev1.EnvVar{{Name: "SIDECAR_LOG_POLLING_INTERVAL", Value: "100ms"}},
 				}},
 				Volumes: append(implicitVolumes, binVolume, runVolume(0), downwardVolume, corev1.Volume{
 					Name:         "tekton-creds-init-home-0",
@@ -2163,6 +2165,7 @@ _EOF_
 						{Name: "tekton-internal-run-0", ReadOnly: true, MountPath: "/tekton/run/0"},
 					}, implicitVolumeMounts...),
 					SecurityContext: SecurityContextConfig{SetSecurityContext: true, SetReadOnlyRootFilesystem: true}.GetSecurityContext(false),
+					Env:             []corev1.EnvVar{{Name: "SIDECAR_LOG_POLLING_INTERVAL", Value: "100ms"}},
 				}},
 				Volumes: append(implicitVolumes, binVolume, runVolume(0), downwardVolume, corev1.Volume{
 					Name:         "tekton-creds-init-home-0",
@@ -2241,6 +2244,7 @@ _EOF_
 						{Name: "tekton-internal-bin", ReadOnly: true, MountPath: "/tekton/bin"},
 						{Name: "tekton-internal-run-0", ReadOnly: true, MountPath: "/tekton/run/0"},
 					}, implicitVolumeMounts...),
+					Env: []corev1.EnvVar{{Name: "SIDECAR_LOG_POLLING_INTERVAL", Value: "100ms"}},
 				}},
 				Volumes: append(implicitVolumes, binVolume, runVolume(0), downwardVolume, corev1.Volume{
 					Name:         "tekton-creds-init-home-0",
@@ -2325,6 +2329,7 @@ _EOF_
 						{Name: "tekton-internal-bin", ReadOnly: true, MountPath: "/tekton/bin"},
 						{Name: "tekton-internal-run-0", ReadOnly: true, MountPath: "/tekton/run/0"},
 					}, implicitVolumeMounts...),
+					Env: []corev1.EnvVar{{Name: "SIDECAR_LOG_POLLING_INTERVAL", Value: "100ms"}},
 				}},
 				Volumes: append(implicitVolumes, binVolume, runVolume(0), downwardVolume, corev1.Volume{
 					Name:         "tekton-creds-init-home-0",
@@ -2404,6 +2409,7 @@ _EOF_
 						{Name: "tekton-internal-run-0", ReadOnly: true, MountPath: "/tekton/run/0"},
 					}, implicitVolumeMounts...),
 					SecurityContext: SecurityContextConfig{SetSecurityContext: true, SetReadOnlyRootFilesystem: true}.GetSecurityContext(false),
+					Env:             []corev1.EnvVar{{Name: "SIDECAR_LOG_POLLING_INTERVAL", Value: "100ms"}},
 				}},
 				Volumes: append(implicitVolumes, binVolume, runVolume(0), downwardVolume, corev1.Volume{
 					Name:         "tekton-creds-init-home-0",
@@ -2645,7 +2651,7 @@ _EOF_
 				KubeClient:      kubeclient,
 				EntrypointCache: entrypointCache,
 			}
-			got, err := builder.Build(store.ToContext(context.Background()), tr, c.ts)
+			got, err := builder.Build(store.ToContext(t.Context()), tr, c.ts)
 			if err != nil {
 				t.Fatalf("builder.Build: %v", err)
 			}
@@ -2852,7 +2858,7 @@ debug-fail-continue-heredoc-randomly-generated-mz4c7
 				EntrypointCache: entrypointCache,
 			}
 
-			got, err := builder.Build(store.ToContext(context.Background()), tr, c.ts)
+			got, err := builder.Build(store.ToContext(t.Context()), tr, c.ts)
 			if err != nil {
 				t.Fatalf("builder.Build: %v", err)
 			}
@@ -3058,7 +3064,7 @@ func TestPodBuild_TaskLevelResourceRequirements(t *testing.T) {
 				Spec: tc.trs,
 			}
 
-			gotPod, err := builder.Build(store.ToContext(context.Background()), tr, tc.ts)
+			gotPod, err := builder.Build(store.ToContext(t.Context()), tr, tc.ts)
 			if err != nil {
 				t.Fatalf("builder.Build: %v", err)
 			}
@@ -3210,7 +3216,7 @@ func TestPodBuildwithSpireEnabled(t *testing.T) {
 				EntrypointCache: entrypointCache,
 			}
 
-			got, err := builder.Build(store.ToContext(context.Background()), tr, c.ts)
+			got, err := builder.Build(store.ToContext(t.Context()), tr, c.ts)
 			if err != nil {
 				t.Fatalf("builder.Build: %v", err)
 			}
@@ -3257,6 +3263,7 @@ func TestMakeLabels(t *testing.T) {
 		"foo":                       "bar",
 		"hello":                     "world",
 		pipeline.TaskRunUIDLabelKey: string(taskRunUID),
+		tknreconciler.KubernetesManagedByAnnotationKey: "foo",
 	}
 	got := makeLabels(&v1.TaskRun{
 		ObjectMeta: metav1.ObjectMeta{
@@ -3267,7 +3274,7 @@ func TestMakeLabels(t *testing.T) {
 				"hello": "world",
 			},
 		},
-	})
+	}, "foo")
 	if d := cmp.Diff(want, got); d != "" {
 		t.Errorf("Diff labels %s", diff.PrintWantGot(d))
 	}
@@ -3768,7 +3775,7 @@ func TestPodBuildWithK8s129(t *testing.T) {
 		KubeClient:      kubeclient,
 		EntrypointCache: entrypointCache,
 	}
-	got, err := builder.Build(store.ToContext(context.Background()), tr, ts)
+	got, err := builder.Build(store.ToContext(t.Context()), tr, ts)
 	if err != nil {
 		t.Errorf("Pod build failed: %s", err)
 	}
