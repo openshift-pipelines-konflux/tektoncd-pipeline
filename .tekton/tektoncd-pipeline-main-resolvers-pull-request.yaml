@@ -12,7 +12,7 @@ metadata:
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
       == "main" &&
-      ("upstream/***".pathChanged() || ".konflux/patches/***".pathChanged() || ".konflux/rpms/***".pathChanged() ||
+      (("dependencies/tini/***".pathChanged()) ||
       ".konflux/dockerfiles/resolvers.Dockerfile".pathChanged() ||
       ".tekton/tektoncd-pipeline-main-resolvers-pull-request.yaml".pathChanged())
   labels:
