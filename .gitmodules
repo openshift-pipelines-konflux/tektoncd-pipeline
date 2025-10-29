@@ -1,0 +1,3 @@
+[submodule "dependencies/tini"]
+	path = dependencies/tini
+	url = https://github.com/krallin/tini.git
