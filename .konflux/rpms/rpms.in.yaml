@@ -1,7 +1,14 @@
 contentOrigin:
   repofiles:
     - ./ubi.repo
-packages: [shadow-utils]
+packages:
+  - cmake
+  - gcc
+  - git
+  - git-lfs
+  - openssl-libs-3.2.2-6.el9_5.1
+  - glibc
+  - glibc-devel
 arches:
   # The list of architectures
   - aarch64
