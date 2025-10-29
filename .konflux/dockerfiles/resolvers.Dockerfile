@@ -1,5 +1,13 @@
-ARG GO_BUILDER=brew.registry.redhat.io/rh-osbs/openshift-golang-builder:v1.23
-ARG RUNTIME=registry.access.redhat.com/ubi9/ubi-minimal:latest@sha256:92b1d5747a93608b6adb64dfd54515c3c5a360802db4706765ff3d8470df6290
+ARG GO_BUILDER=brew.registry.redhat.io/rh-osbs/openshift-golang-builder:v1.24
+ARG RUNTIME=registry.access.redhat.com/ubi9/ubi-minimal:latest@sha256:34880b64c07f28f64d95737f82f891516de9a3b43583f39970f7bf8e4cfa48b7
+
+FROM $RUNTIME as dependency-builder
+
+COPY dependencies/tini dependencies/tini
+WORKDIR /dependencies/tini
+RUN microdnf update && microdnf install -y cmake gcc
+ENV ENV CFLAGS="-DPR_SET_CHILD_SUBREAPER=36 -DPR_GET_CHILD_SUBREAPER=37"
+RUN cmake . && make tini
 
 FROM $GO_BUILDER AS builder
 
@@ -8,12 +16,13 @@ COPY upstream .
 COPY .konflux/patches patches/
 RUN set -e; for f in patches/*.patch; do echo ${f}; [[ -f ${f} ]] || continue; git apply ${f}; done
 COPY head HEAD
+ENV GOEXPERIMENT=strictfipsruntime
 ENV GODEBUG="http2server=0"
-RUN go build -ldflags="-X 'knative.dev/pkg/changeset.rev=$(cat HEAD)'" -mod=vendor -tags disable_gcp -v -o /tmp/resolvers \
+RUN go build -ldflags="-X 'knative.dev/pkg/changeset.rev=$(cat HEAD)'" -mod=vendor -tags disable_gcp,strictfipsruntime -v -o /tmp/resolvers \
     ./cmd/resolvers
 
 FROM $RUNTIME
-ARG VERSION=pipeline-main
+ARG VERSION=pipeline-1.19
 
 ENV RESOLVERS=/usr/local/bin/resolvers \
     KO_APP=/ko-app \
@@ -22,9 +31,12 @@ ENV RESOLVERS=/usr/local/bin/resolvers \
 COPY --from=builder /tmp/resolvers /ko-app/resolvers
 COPY head ${KO_DATA_PATH}/HEAD
 
+COPY --from=dependency-builder /dependencies/tini/tini /sbin/tini
+RUN chmod 0755 /sbin/tini && chown root:root /sbin/tini
+
 LABEL \
-      com.redhat.component="openshift-pipelines-resolvers-rhel8-container" \
-      name="openshift-pipelines/pipelines-resolvers-rhel8" \
+      com.redhat.component="openshift-pipelines-resolvers-rhel9-container" \
+      name="openshift-pipelines/pipelines-resolvers-rhel9" \
       version=$VERSION \
       summary="Red Hat OpenShift Pipelines Resolvers" \
       maintainer="pipelines-extcomm@redhat.com" \
@@ -33,9 +45,10 @@ LABEL \
       io.k8s.description="Red Hat OpenShift Pipelines Resolvers" \
       io.openshift.tags="pipelines,tekton,openshift"
 
-RUN microdnf install -y shadow-utils
-RUN groupadd -r -g 65532 nonroot && useradd --no-log-init -r -u 65532 -g nonroot nonroot
+RUN microdnf update && microdnf install -y git && microdnf clean all
+
+RUN groupadd -r -g 65532 nonroot && \
+    useradd --no-log-init -r -u 65532 -g nonroot nonroot
 USER 65532
 
-ENTRYPOINT ["/ko-app/resolvers"]
-
+ENTRYPOINT ["/sbin/tini", "--", "/ko-app/resolvers"]

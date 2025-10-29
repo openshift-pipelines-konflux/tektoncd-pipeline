@@ -1,5 +1,5 @@
-ARG GO_BUILDER=brew.registry.redhat.io/rh-osbs/openshift-golang-builder:v1.23
-ARG RUNTIME=registry.access.redhat.com/ubi9/ubi-minimal:latest@sha256:92b1d5747a93608b6adb64dfd54515c3c5a360802db4706765ff3d8470df6290
+ARG GO_BUILDER=brew.registry.redhat.io/rh-osbs/openshift-golang-builder:v1.24
+ARG RUNTIME=registry.access.redhat.com/ubi9/ubi-minimal:latest@sha256:34880b64c07f28f64d95737f82f891516de9a3b43583f39970f7bf8e4cfa48b7
 
 FROM $GO_BUILDER AS builder
 
@@ -8,12 +8,13 @@ COPY upstream .
 COPY .konflux/patches patches/
 RUN set -e; for f in patches/*.patch; do echo ${f}; [[ -f ${f} ]] || continue; git apply ${f}; done
 COPY head HEAD
+ENV GOEXPERIMENT=strictfipsruntime
 ENV GODEBUG="http2server=0"
-RUN go build -ldflags="-X 'knative.dev/pkg/changeset.rev=$(cat HEAD)'" -mod=vendor -tags disable_gcp -v -o /tmp/controller \
+RUN go build -ldflags="-X 'knative.dev/pkg/changeset.rev=$(cat HEAD)'" -mod=vendor -tags disable_gcp,strictfipsruntime -v -o /tmp/controller \
     ./cmd/controller
 
 FROM $RUNTIME
-ARG VERSION=pipeline-main
+ARG VERSION=pipeline-next
 
 ENV CONTROLLER=/usr/local/bin/controller \
     KO_APP=/ko-app \
@@ -23,8 +24,8 @@ COPY --from=builder /tmp/controller /ko-app/controller
 COPY head ${KO_DATA_PATH}/HEAD
 
 LABEL \
-      com.redhat.component="openshift-pipelines-controller-rhel8-container" \
-      name="openshift-pipelines/pipelines-controller-rhel8" \
+      com.redhat.component="openshift-pipelines-controller-rhel9-container" \
+      name="openshift-pipelines/pipelines-controller-rhel9" \
       version=$VERSION \
       summary="Red Hat OpenShift Pipelines Controller" \
       maintainer="pipelines-extcomm@redhat.com" \
@@ -33,9 +34,8 @@ LABEL \
       io.k8s.description="Red Hat OpenShift Pipelines Controller" \
       io.openshift.tags="pipelines,tekton,openshift"
 
-RUN microdnf install -y shadow-utils
-RUN groupadd -r -g 65532 nonroot && useradd --no-log-init -r -u 65532 -g nonroot nonroot
+RUN groupadd -r -g 65532 nonroot && \
+    useradd --no-log-init -r -u 65532 -g nonroot nonroot
 USER 65532
 
 ENTRYPOINT ["/ko-app/controller"]
-
