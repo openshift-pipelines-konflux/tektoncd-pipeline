@@ -11,16 +11,16 @@ metadata:
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
       == "main" &&
-      ("upstream/***".pathChanged() || ".konflux/patches/***".pathChanged() || ".konflux/rpms/***".pathChanged() ||
-      ".konflux/dockerfiles/entrypoint.Dockerfile".pathChanged() ||
-      ".tekton/tektoncd-pipeline-main-entrypoint-push.yaml".pathChanged())
+      (("dependencies/tini/***".pathChanged()) ||
+      ".konflux/dockerfiles/resolvers.Dockerfile".pathChanged() ||
+      ".tekton/tektoncd-pipeline-next-resolvers-push.yaml".pathChanged())
   creationTimestamp: null
   labels:
-    appstudio.openshift.io/application: openshift-pipelines-core-main
-    appstudio.openshift.io/component: tektoncd-pipeline-main-entrypoint
+    appstudio.openshift.io/application: openshift-pipelines-core-next
+    appstudio.openshift.io/component: tektoncd-pipeline-next-resolvers
     pipelines.appstudio.openshift.io/type: build
-  name: tektoncd-pipeline-main-entrypoint-on-push
-  namespace: tekton-ecosystem-tenant
+  name: tektoncd-pipeline-next-resolvers-on-push
+  namespace: 
 spec:
   params:
   - name: git-url
@@ -28,16 +28,16 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/tekton-ecosystem-tenant/pipeline-entrypoint-rhel9:{{revision}}
+    value: quay.io/redhat-user-workloads//pipeline-resolvers-rhel9:{{revision}}
   - name: dockerfile
-    value: .konflux/dockerfiles/entrypoint.Dockerfile
+    value: .konflux/dockerfiles/resolvers.Dockerfile
   - name: prefetch-input
     value: |
       {"type": "rpm", "path": ".konflux/rpms"}
   pipelineRef:
     name: docker-build-ta
   taskRunTemplate:
-    serviceAccountName: build-pipeline-tektoncd-pipeline-main-entrypoint
+    serviceAccountName: build-pipeline-tektoncd-pipeline-resolvers-next
   workspaces:
   - name: git-auth
     secret:

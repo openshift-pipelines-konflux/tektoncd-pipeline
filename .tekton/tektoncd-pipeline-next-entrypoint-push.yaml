@@ -12,15 +12,15 @@ metadata:
     pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
       == "main" &&
       ("upstream/***".pathChanged() || ".konflux/patches/***".pathChanged() || ".konflux/rpms/***".pathChanged() ||
-      ".konflux/dockerfiles/workingdirinit.Dockerfile".pathChanged() ||
-      ".tekton/tektoncd-pipeline-main-workingdirinit-push.yaml".pathChanged())
+      ".konflux/dockerfiles/entrypoint.Dockerfile".pathChanged() ||
+      ".tekton/tektoncd-pipeline-next-entrypoint-push.yaml".pathChanged())
   creationTimestamp: null
   labels:
-    appstudio.openshift.io/application: openshift-pipelines-core-main
-    appstudio.openshift.io/component: tektoncd-pipeline-main-workingdirinit
+    appstudio.openshift.io/application: openshift-pipelines-core-next
+    appstudio.openshift.io/component: tektoncd-pipeline-next-entrypoint
     pipelines.appstudio.openshift.io/type: build
-  name: tektoncd-pipeline-main-workingdirinit-on-push
-  namespace: tekton-ecosystem-tenant
+  name: tektoncd-pipeline-next-entrypoint-on-push
+  namespace: 
 spec:
   params:
   - name: git-url
@@ -28,16 +28,16 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/tekton-ecosystem-tenant/pipeline-workingdirinit-rhel9:{{revision}}
+    value: quay.io/redhat-user-workloads//pipeline-entrypoint-rhel9:{{revision}}
   - name: dockerfile
-    value: .konflux/dockerfiles/workingdirinit.Dockerfile
+    value: .konflux/dockerfiles/entrypoint.Dockerfile
   - name: prefetch-input
     value: |
       {"type": "rpm", "path": ".konflux/rpms"}
   pipelineRef:
     name: docker-build-ta
   taskRunTemplate:
-    serviceAccountName: build-pipeline-tektoncd-pipeline-main-workingdirinit
+    serviceAccountName: build-pipeline-tektoncd-pipeline-entrypoint-next
   workspaces:
   - name: git-auth
     secret:
